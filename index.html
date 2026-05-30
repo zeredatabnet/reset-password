@@ -28,16 +28,37 @@
       border: 2px solid #967D55;
       box-sizing: border-box;
     }
-    h2 { color: #3E200F; margin-bottom: 20px; font-size: 22px; }
+    h2 { color: #3E200F; margin-bottom: 25px; font-size: 22px; }
+    
+    /* Password Input Wrapper for positioning the Eye Icon */
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
     input {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 20px;
+      padding: 12px 45px 12px 15px; /* Leave space on the right for eye icon */
       border: 1.5px solid #967D55;
       border-radius: 25px;
       font-size: 16px;
       outline: none;
       box-sizing: border-box;
+    }
+    /* The clickable Eye Icon style */
+    .eye-icon {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #967D55;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     button {
       background: #4A260A;
@@ -51,6 +72,7 @@
       width: 100%;
       transition: background 0.3s;
       box-sizing: border-box;
+      margin-top: 10px;
     }
     button:hover { background: #351a06; }
     #message { margin-top: 15px; font-weight: bold; font-size: 14px; line-height: 1.5; }
@@ -62,7 +84,19 @@
 
   <div class="card">
     <h2>አዲስ የይለፍ ቃል ያስገቡ <br>(Set New Password)</h2>
-    <input type="password" id="new-password" placeholder="አዲስ የይለፍ ቃል (New Password)" required minlength="6">
+    
+    <!-- Input 1: New Password -->
+    <div class="input-wrapper">
+      <input type="password" id="new-password" placeholder="አዲስ የይለፍ ቃል (New Password)" required minlength="6">
+      <span class="eye-icon" onclick="toggleVisibility('new-password', this)">👁️</span>
+    </div>
+
+    <!-- Input 2: Confirm Password -->
+    <div class="input-wrapper">
+      <input type="password" id="confirm-password" placeholder="የይለፍ ቃል ማረጋገጫ (Confirm Password)" required minlength="6">
+      <span class="eye-icon" onclick="toggleVisibility('confirm-password', this)">👁️</span>
+    </div>
+
     <button onclick="updatePassword()">አስቀምጥ (Save Password)</button>
     <p id="message"></p>
   </div>
@@ -70,8 +104,20 @@
   <script>
     // Initialize Supabase
     const supabaseUrl = 'https://hdiavopcxtrowhowtooq.supabase.co';
-    const supabaseAnonKey = 'sb_publishable_wMmTKAR0Xt5eEvMmxLFXOQ_2X2B59cW';
+    const supabaseAnonKey = 'sb_publishable_wMmTKAR0Xt5eEvMmxLFXOQ_2X2B5V8n'; // Double check this is your full publishable key
     const _supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    // Toggle Hide/Reveal Password function
+    function toggleVisibility(inputId, iconElement) {
+      const inputField = document.getElementById(inputId);
+      if (inputField.type === "password") {
+        inputField.type = "text";
+        iconElement.innerText = "🙈"; // Eye closed
+      } else {
+        inputField.type = "password";
+        iconElement.innerText = "👁️"; // Eye open
+      }
+    }
 
     // Run Diagnostics immediately when page loads
     window.onload = async function() {
@@ -81,7 +127,6 @@
       const hashParams = new URLSearchParams(hash);
       const queryParams = new URLSearchParams(window.location.search);
 
-      // Extract tokens from either Hash (#) or Query (?)
       const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
       const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
@@ -105,13 +150,12 @@
           messageElement.innerText = "አካውንትዎ ተረጋግጧል! አሁን አዲሱን የይለፍ ቃል መጻፍ ይችላሉ። (Session verified! Enter your new password).";
         }
       } else {
-        // Run diagnosis on why tokens are missing
         messageElement.className = 'error';
         let diagnosis = "ስህተት: ";
         if (queryParams.has('code')) {
-          diagnosis += "Detected a PKCE '?code=' parameter. Your app is still running the old PKCE flow. Please verify Step 1 (Implicit setup) from the previous instructions and perform a clean install.";
+          diagnosis += "Detected a PKCE '?code=' parameter. Your app is still running the old PKCE flow. Please perform a clean install of your Flutter app.";
         } else {
-          diagnosis += "No tokens detected in URL. Your mobile browser or email client may have stripped the security tokens from the link. Try copying the link and opening it in Chrome/Firefox directly.";
+          diagnosis += "No tokens detected. Your email client may have stripped the security parameters. Copy the link and open it in a Chrome Incognito Tab.";
         }
         messageElement.innerText = diagnosis;
       }
@@ -119,11 +163,19 @@
 
     async function updatePassword() {
       const password = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
       const messageElement = document.getElementById('message');
 
       if (password.length < 6) {
         messageElement.className = 'error';
         messageElement.innerText = "የይለፍ ቃል ቢያንስ 6 ቁምፊዎች መሆን አለበት (Password must be 6+ characters)";
+        return;
+      }
+
+      // Check if both input boxes match
+      if (password !== confirmPassword) {
+        messageElement.className = 'error';
+        messageElement.innerText = "ስህተት: ያስገቡት ሁለቱ የይለፍ ቃላት አይዛመዱም! (Error: Passwords do not match!)";
         return;
       }
 
@@ -139,7 +191,8 @@
         } else {
           messageElement.className = 'success';
           messageElement.innerText = "የይለፍ ቃልዎ በትክክል ተቀይሯል! አሁን ወደ መተግበሪያው ገብተው መማር ይችላሉ። (Success! You can now log into your app).";
-          document.getElementById('new-password').style.display = 'none';
+          document.getElementById('new-password').parentElement.style.display = 'none';
+          document.getElementById('confirm-password').parentElement.style.display = 'none';
           document.querySelector('button').style.display = 'none';
         }
       } catch (err) {
