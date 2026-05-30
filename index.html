@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>የይለፍ ቃል መቀየር - Abnet Assistant</title>
+  <!-- Load Supabase Official JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #563612, #A4834E);
+      color: #white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      border: 2px solid #967D55;
+    }
+    h2 { color: #3E200F; margin-bottom: 20px; font-size: 22px; }
+    input {
+      width: 90%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1.5px solid #967D55;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+    }
+    button {
+      background: #4A260A;
+      color: #EAD8B1;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s;
+    }
+    button:hover { background: #351a06; }
+    #message { margin-top: 15px; font-weight: bold; font-size: 14px; }
+    .success { color: #017209; }
+    .error { color: #9E2A2B; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>አዲስ የይለፍ ቃል ያስገቡ <br>(Set New Password)</h2>
+    <input type="password" id="new-password" placeholder="አዲስ የይለፍ ቃል (New Password)" required minlength="6">
+    <button onclick="updatePassword()">አስቀምጥ (Save Password)</button>
+    <p id="message"></p>
+  </div>
+
+  <script>
+    // Initialize Supabase (Using your exact project details)
+    const supabaseUrl = 'https://hdiavopcxtrowhowtooq.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_wMmTKAR0Xt5eEvMmxLFXOQ_2X2B5V8n'; // Double-check this is your full publishable key
+    const _supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    async function updatePassword() {
+      const password = document.getElementById('new-password').value;
+      const messageElement = document.getElementById('message');
+
+      if (password.length < 6) {
+        messageElement.className = 'error';
+        messageElement.innerText = "የይለፍ ቃል ቢያንስ 6 ቁምፊዎች መሆን አለበት (Password must be 6+ characters)";
+        return;
+      }
+
+      messageElement.innerText = "...በመጫን ላይ (Updating)...";
+      messageElement.className = "";
+
+      // Send new password to Supabase (Supabase automatically reads the secure access token from the browser's URL)
+      const { error } = await _supabase.auth.updateUser({ password: password });
+
+      if (error) {
+        messageElement.className = 'error';
+        messageElement.innerText = "ስህተት ተፈጥሯል: " + error.message;
+      } else {
+        messageElement.className = 'success';
+        messageElement.innerText = "የይለፍ ቃልዎ በትክክል ተቀይሯል! አሁን ወደ መተግበሪያው ገብተው መማር ይችላሉ። (Success! You can now log into your app).";
+        document.getElementById('new-password').style.display = 'none';
+        document.querySelector('button').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
