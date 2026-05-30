@@ -53,7 +53,7 @@
       box-sizing: border-box;
     }
     button:hover { background: #351a06; }
-    #message { margin-top: 15px; font-weight: bold; font-size: 14px; }
+    #message { margin-top: 15px; font-weight: bold; font-size: 14px; line-height: 1.5; }
     .success { color: #017209; }
     .error { color: #9E2A2B; }
   </style>
@@ -73,6 +73,50 @@
     const supabaseAnonKey = 'sb_publishable_wMmTKAR0Xt5eEvMmxLFXOQ_2X2B5V8n';
     const _supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+    // Run Diagnostics immediately when page loads
+    window.onload = async function() {
+      const messageElement = document.getElementById('message');
+      
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      const queryParams = new URLSearchParams(window.location.search);
+
+      // Extract tokens from either Hash (#) or Query (?)
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+      const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+
+      if (errorDescription) {
+        messageElement.className = 'error';
+        messageElement.innerText = "Supabase Link Error: " + decodeURIComponent(errorDescription);
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        const { error } = await _supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        if (error) {
+          messageElement.className = 'error';
+          messageElement.innerText = "Session Setup Error: " + error.message;
+        } else {
+          messageElement.className = 'success';
+          messageElement.innerText = "አካውንትዎ ተረጋግጧል! አሁን አዲሱን የይለፍ ቃል መጻፍ ይችላሉ። (Session verified! Enter your new password).";
+        }
+      } else {
+        // Run diagnosis on why tokens are missing
+        messageElement.className = 'error';
+        let diagnosis = "ስህተት: ";
+        if (queryParams.has('code')) {
+          diagnosis += "Detected a PKCE '?code=' parameter. Your app is still running the old PKCE flow. Please verify Step 1 (Implicit setup) from the previous instructions and perform a clean install.";
+        } else {
+          diagnosis += "No tokens detected in URL. Your mobile browser or email client may have stripped the security tokens from the link. Try copying the link and opening it in Chrome/Firefox directly.";
+        }
+        messageElement.innerText = diagnosis;
+      }
+    }
+
     async function updatePassword() {
       const password = document.getElementById('new-password').value;
       const messageElement = document.getElementById('message');
@@ -87,20 +131,6 @@
       messageElement.className = "";
 
       try {
-        // FORCE MANUALLY PARSE TOKENS IF THE MOBILE BROWSER HIDES THEM
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
-          await _supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-        }
-
-        // Send new password to Supabase
         const { error } = await _supabase.auth.updateUser({ password: password });
 
         if (error) {
